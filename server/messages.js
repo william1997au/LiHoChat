@@ -1,4 +1,5 @@
 const { ensureRoomExists } = require("./rooms");
+const { ensureUserExists } = require("./users");
 
 const fakeMessages = [
   {
@@ -66,6 +67,7 @@ function createMessage(payload) {
   }
 
   ensureRoomExists(roomId);
+  ensureUserExists(userId);
 
   if (type !== "text") {
     throw new Error('type must be "text"');
