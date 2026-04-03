@@ -1,4 +1,6 @@
+const cors = require("cors");
 const express = require("express");
+const path = require("path");
 
 const {
   fakeMessages,
@@ -9,6 +11,11 @@ const { getRooms, getRoomById } = require("./rooms");
 
 const app = express();
 
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  }),
+);
 app.use(express.json());
 
 app.get("/health", (req, res) => {
