@@ -2,29 +2,65 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getMessages, getUserRooms, getUsers } from "../lib/api";
+import {
+  deleteRoom,
+  getFriends,
+  getMessages,
+  getOrCreateDirectRoom,
+  getUserRooms,
+  getUsers,
+} from "../lib/api";
 import { createSocket } from "../lib/socket";
 
 const DEFAULT_ERROR = "Something went wrong";
 
 export default function HomePage() {
+  const [activePanel, setActivePanel] = useState("chats");
   const [users, setUsers] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("general");
   const [messages, setMessages] = useState([]);
   const [userId, setUserId] = useState("u1");
   const [username, setUsername] = useState("william");
   const [content, setContent] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [socketStatus, setSocketStatus] = useState("Connecting...");
-  const [apiStatus, setApiStatus] = useState("Loading rooms...");
+  const [apiStatus, setApiStatus] = useState("Loading conversations...");
   const socketRef = useRef(null);
   const selectedRoomIdRef = useRef("general");
   const userIdRef = useRef("u1");
 
-  const groupedRooms = {
-    group: rooms.filter((room) => room.type === "group"),
-    direct: rooms.filter((room) => room.type === "direct"),
-  };
+  const filteredFriends = friends.filter((friend) => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    if (!keyword) {
+      return true;
+    }
+
+    return (
+      friend.displayName.toLowerCase().includes(keyword) ||
+      friend.username.toLowerCase().includes(keyword)
+    );
+  });
+
+  const filteredRooms = rooms.filter((room) => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    if (!keyword) {
+      return true;
+    }
+
+    return (
+      room.name.toLowerCase().includes(keyword) ||
+      room.description.toLowerCase().includes(keyword)
+    );
+  });
+
+  const selectedRoom =
+    rooms.find((room) => room.id === selectedRoomId) || null;
+  const directRooms = filteredRooms.filter((room) => room.type === "direct");
+  const groupRooms = filteredRooms.filter((room) => room.type === "group");
 
   useEffect(() => {
     let isMounted = true;
@@ -67,20 +103,24 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadVisibleRooms() {
+    async function loadVisibleRoomsAndFriends() {
       try {
-        const roomData = await getUserRooms(userId);
+        const [roomData, friendData] = await Promise.all([
+          getUserRooms(userId),
+          getFriends(userId),
+        ]);
 
         if (!isMounted) {
           return;
         }
 
         setRooms(roomData.rooms);
+        setFriends(friendData.friends);
 
         if (roomData.rooms.length === 0) {
           setSelectedRoomId("");
           setMessages([]);
-          setApiStatus("No rooms available");
+          setApiStatus("No conversations available");
           return;
         }
 
@@ -91,8 +131,13 @@ export default function HomePage() {
         if (!hasCurrentRoom) {
           setSelectedRoomId(roomData.rooms[0].id);
         }
+
+        setApiStatus(
+          `Loaded ${friendData.friends.length} friend(s) and ${roomData.rooms.length} room(s)`,
+        );
       } catch (error) {
         if (isMounted) {
+          setFriends([]);
           setRooms([]);
           setSelectedRoomId("");
           setMessages([]);
@@ -101,7 +146,7 @@ export default function HomePage() {
       }
     }
 
-    loadVisibleRooms();
+    loadVisibleRoomsAndFriends();
 
     return () => {
       isMounted = false;
@@ -202,6 +247,58 @@ export default function HomePage() {
     setUserId(nextUserId);
   }
 
+  async function handleOpenFriendChat(friendUserId) {
+    try {
+      const result = await getOrCreateDirectRoom(userId, friendUserId);
+      const roomData = await getUserRooms(userId);
+
+      setRooms(roomData.rooms);
+      setSelectedRoomId(result.room.id);
+      setApiStatus(
+        result.created
+          ? `Created direct room: ${result.room.name}`
+          : `Opened direct room: ${result.room.name}`,
+      );
+
+      if (socketRef.current?.connected) {
+        socketRef.current.emit("room:join", {
+          roomId: result.room.id,
+          userId,
+        });
+      }
+    } catch (error) {
+      setApiStatus(error.message || DEFAULT_ERROR);
+    }
+  }
+
+  async function handleDeleteRoom(roomId) {
+    try {
+      await deleteRoom(roomId, userId);
+
+      const roomData = await getUserRooms(userId);
+      setRooms(roomData.rooms);
+
+      if (selectedRoomId === roomId) {
+        const nextRoomId = roomData.rooms[0]?.id || "";
+        setSelectedRoomId(nextRoomId);
+        setMessages([]);
+
+        if (nextRoomId && socketRef.current?.connected) {
+          socketRef.current.emit("room:join", {
+            roomId: nextRoomId,
+            userId,
+          });
+        } else if (socketRef.current?.connected) {
+          socketRef.current.emit("room:leave");
+        }
+      }
+
+      setApiStatus("Direct room deleted");
+    } catch (error) {
+      setApiStatus(error.message || DEFAULT_ERROR);
+    }
+  }
+
   function handleSendMessage(event) {
     event.preventDefault();
 
@@ -227,101 +324,184 @@ export default function HomePage() {
   }
 
   return (
-    <main className="shell">
-      <section className="sidebar card">
-        <div className="eyebrow">LiHoChat</div>
-        <h1 className="title">Realtime Chat Console</h1>
-        <p className="summary">
-          Formal Next.js frontend talking to your existing Express and Socket.IO
-          backend.
-        </p>
-
-        <div className="field">
-          <label htmlFor="userId">Current User</label>
-          <select
-            id="userId"
-            value={userId}
-            onChange={(event) => handleSelectUser(event.target.value)}
+    <main className="app-shell">
+      <aside className="app-rail">
+        <div className="app-brand">L</div>
+        <div className="app-rail-icons">
+          <button
+            className={
+              activePanel === "friends"
+                ? "app-rail-icon active"
+                : "app-rail-icon"
+            }
+            onClick={() => setActivePanel("friends")}
+            type="button"
+            aria-label="Friends"
           >
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName} ({user.username})
-              </option>
-            ))}
-          </select>
+            <span className="material-symbols-outlined">person</span>
+          </button>
+          <button
+            className={
+              activePanel === "chats"
+                ? "app-rail-icon active"
+                : "app-rail-icon"
+            }
+            onClick={() => setActivePanel("chats")}
+            type="button"
+            aria-label="Chats"
+          >
+            <span className="material-symbols-outlined">chat</span>
+          </button>
+          <span className="app-rail-icon">
+            <span className="material-symbols-outlined">person_add</span>
+          </span>
+          <span className="app-rail-icon">
+            <span className="material-symbols-outlined">settings</span>
+          </span>
+        </div>
+      </aside>
+
+      <section className="conversation-panel card">
+        <div className="conversation-header">
+          <div>
+            <div className="eyebrow">LiHoChat</div>
+            <h1 className="title">
+              {activePanel === "friends" ? "Friends" : "Conversations"}
+            </h1>
+          </div>
+          <div className="field compact">
+            <label htmlFor="userId">Current User</label>
+            <select
+              id="userId"
+              value={userId}
+              onChange={(event) => handleSelectUser(event.target.value)}
+            >
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName} ({user.username})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="status-box">
-          <div>
-            <span className="status-label">API</span>
-            <p>{apiStatus}</p>
-          </div>
-          <div>
-            <span className="status-label">Socket</span>
-            <p>{socketStatus}</p>
-          </div>
+        <div className="search-box">
+          <input
+            aria-label="Search friends and chats"
+            placeholder="以姓名搜尋"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
         </div>
 
-        <div className="room-list">
-          <div className="section-header">
-            <h2>Rooms</h2>
-          </div>
-
-          {groupedRooms.group.length > 0 ? (
-            <div className="room-section">
-              <div className="room-section-title">Groups</div>
-              {groupedRooms.group.map((room) => (
+        {activePanel === "friends" ? (
+          <div className="list-section list-section-fill">
+            <div className="section-header">
+              <h2>好友 {filteredFriends.length}</h2>
+            </div>
+            <div className="conversation-list">
+              {filteredFriends.map((friend) => (
                 <button
-                  key={room.id}
-                  className={
-                    room.id === selectedRoomId ? "room active" : "room"
-                  }
-                  onClick={() => handleSelectRoom(room.id)}
+                  key={friend.userId}
+                  className="conversation-item"
+                  onClick={() => handleOpenFriendChat(friend.userId)}
                   type="button"
                 >
-                  <div className="room-title-row">
-                    <strong>{room.name}</strong>
-                    <span className="room-type-badge">{room.type}</span>
+                  <div className="avatar">{friend.displayName.slice(0, 1)}</div>
+                  <div className="conversation-copy">
+                    <strong>{friend.displayName}</strong>
+                    <span>@{friend.username}</span>
                   </div>
-                  <span>{room.description}</span>
+                  <span className="conversation-action">聊天</span>
                 </button>
               ))}
             </div>
-          ) : null}
-
-          {groupedRooms.direct.length > 0 ? (
-            <div className="room-section">
-              <div className="room-section-title">Direct</div>
-              {groupedRooms.direct.map((room) => (
-                <button
-                  key={room.id}
-                  className={
-                    room.id === selectedRoomId ? "room active" : "room"
-                  }
-                  onClick={() => handleSelectRoom(room.id)}
-                  type="button"
-                >
-                  <div className="room-title-row">
-                    <strong>{room.name}</strong>
-                    <span className="room-type-badge">{room.type}</span>
-                  </div>
-                  <span>{room.description}</span>
-                </button>
-              ))}
+          </div>
+        ) : (
+          <div className="list-section list-section-fill">
+            <div className="section-header">
+              <h2>聊天室 {filteredRooms.length}</h2>
             </div>
-          ) : null}
-        </div>
+
+            {directRooms.length > 0 ? (
+              <div className="room-section">
+                <div className="room-section-title">Direct</div>
+                <div className="conversation-list">
+                  {directRooms.map((room) => (
+                    <div
+                      key={room.id}
+                      className={
+                        room.id === selectedRoomId
+                          ? "conversation-item selected"
+                          : "conversation-item"
+                      }
+                    >
+                      <button
+                        className="conversation-main"
+                        onClick={() => handleSelectRoom(room.id)}
+                        type="button"
+                      >
+                        <div className="avatar">{room.name.slice(0, 1)}</div>
+                        <div className="conversation-copy">
+                          <strong>{room.name}</strong>
+                          <span>{room.description}</span>
+                        </div>
+                      </button>
+                      <button
+                        className="delete-button"
+                        onClick={() => handleDeleteRoom(room.id)}
+                        type="button"
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {groupRooms.length > 0 ? (
+              <div className="room-section">
+                <div className="room-section-title">Groups</div>
+                <div className="conversation-list">
+                  {groupRooms.map((room) => (
+                    <button
+                      key={room.id}
+                      className={
+                        room.id === selectedRoomId
+                          ? "conversation-item selected"
+                          : "conversation-item"
+                      }
+                      onClick={() => handleSelectRoom(room.id)}
+                      type="button"
+                    >
+                      <div className="avatar">{room.name.slice(0, 1)}</div>
+                      <div className="conversation-copy">
+                        <strong>{room.name}</strong>
+                        <span>{room.description}</span>
+                      </div>
+                      <span className="conversation-tag">Group</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </section>
 
       <section className="chat card">
         <div className="chat-header">
           <div>
-            <div className="eyebrow">Current Room</div>
+            <div className="eyebrow">
+              {selectedRoom?.type === "direct" ? "Direct Chat" : "Chat Room"}
+            </div>
             <h2>
-              {rooms.find((room) => room.id === selectedRoomId)?.name ||
-                selectedRoomId ||
-                "No room"}
+              {selectedRoom?.name || selectedRoomId || "No room"}
             </h2>
+            <p className="chat-summary">
+              {selectedRoom?.description || "Select a room or click a friend"}
+            </p>
           </div>
         </div>
 

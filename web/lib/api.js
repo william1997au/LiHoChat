@@ -24,6 +24,29 @@ export function getUsers() {
   return request("/api/users");
 }
 
+export function getFriends(userId) {
+  return request(`/api/users/${encodeURIComponent(userId)}/friends`);
+}
+
+export function getOrCreateDirectRoom(userId, friendUserId) {
+  return request("/api/direct-rooms", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ userId, friendUserId }),
+  });
+}
+
+export function deleteRoom(roomId, userId) {
+  return request(
+    `/api/rooms/${encodeURIComponent(roomId)}?userId=${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
 export function getMessages(roomId) {
   return request(`/api/messages?roomId=${encodeURIComponent(roomId)}`);
 }
