@@ -3,6 +3,7 @@ const express = require("express");
 
 const { deleteRoomForUser, getOrCreateDirectRoom } = require("./directRooms");
 const { getFriendsByUserId } = require("./friendships");
+const { createGroupRoom } = require("./groupRooms");
 const {
   fakeMessages,
   getMessagesByRoomId,
@@ -107,6 +108,26 @@ app.post("/api/direct-rooms", (req, res) => {
     const result = getOrCreateDirectRoom(userId, friendUserId);
 
     res.status(result.created ? 201 : 200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/group-rooms", (req, res) => {
+  try {
+    const creatorUserId = String(req.body?.creatorUserId || "").trim();
+    const name = String(req.body?.name || "").trim();
+    const memberUserIds = Array.isArray(req.body?.memberUserIds)
+      ? req.body.memberUserIds
+      : [];
+
+    const room = createGroupRoom({
+      creatorUserId,
+      name,
+      memberUserIds,
+    });
+
+    res.status(201).json({ room });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
