@@ -29,49 +29,6 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadVisibleRooms(nextUserId) {
-      try {
-        const roomData = await getUserRooms(nextUserId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setRooms(roomData.rooms);
-
-        if (roomData.rooms.length > 0) {
-          const hasCurrentRoom = roomData.rooms.some(
-            (room) => room.id === selectedRoomIdRef.current,
-          );
-
-          setSelectedRoomId(
-            hasCurrentRoom ? selectedRoomIdRef.current : roomData.rooms[0].id,
-          );
-        } else {
-          setSelectedRoomId("");
-          setMessages([]);
-          setApiStatus("No rooms available");
-        }
-      } catch (error) {
-        if (isMounted) {
-          setRooms([]);
-          setSelectedRoomId("");
-          setMessages([]);
-          setApiStatus(error.message || DEFAULT_ERROR);
-        }
-      }
-    }
-
-    loadVisibleRooms(userIdRef.current);
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
     async function loadUsers() {
       try {
         const userData = await getUsers();
@@ -110,7 +67,7 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function refreshVisibleRooms() {
+    async function loadVisibleRooms() {
       try {
         const roomData = await getUserRooms(userId);
 
@@ -144,7 +101,7 @@ export default function HomePage() {
       }
     }
 
-    refreshVisibleRooms();
+    loadVisibleRooms();
 
     return () => {
       isMounted = false;
