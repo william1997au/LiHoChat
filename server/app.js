@@ -9,7 +9,11 @@ const {
   getMessagesByRoomId,
   createMessage,
 } = require("./messages");
-const { getRoomMemberProfiles, getUserRooms } = require("./roomMembers");
+const {
+  getRoomDetail,
+  getRoomMemberProfiles,
+  getUserRooms,
+} = require("./roomMembers");
 const { getRooms, getRoomById } = require("./rooms");
 const { getUsers, getUserById } = require("./users");
 
@@ -38,7 +42,7 @@ app.get("/api/rooms/:roomId", (req, res) => {
     return;
   }
 
-  res.json({ room });
+  res.json({ room: getRoomDetail(room) });
 });
 
 app.get("/api/rooms/:roomId/members", (req, res) => {

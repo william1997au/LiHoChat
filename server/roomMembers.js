@@ -80,6 +80,37 @@ function getRoomMemberProfiles(roomId) {
   });
 }
 
+function getRoomOwner(roomId) {
+  const ownerMembership =
+    getRoomMembers(roomId).find((membership) => membership.role === "owner") ||
+    null;
+
+  if (!ownerMembership) {
+    return null;
+  }
+
+  const owner = getUserById(ownerMembership.userId);
+
+  return {
+    userId: owner.id,
+    username: owner.username,
+    displayName: owner.displayName,
+    avatarUrl: owner.avatarUrl,
+    role: ownerMembership.role,
+    joinedAt: ownerMembership.joinedAt,
+  };
+}
+
+function getRoomDetail(room) {
+  const members = getRoomMemberProfiles(room.id);
+
+  return {
+    ...room,
+    memberCount: members.length,
+    owner: getRoomOwner(room.id),
+  };
+}
+
 function getUserRoomMemberships(userId) {
   ensureUserExists(userId);
 
@@ -148,6 +179,8 @@ module.exports = {
   fakeRoomMembers,
   getRoomMembers,
   getRoomMemberProfiles,
+  getRoomOwner,
+  getRoomDetail,
   getUserRoomMemberships,
   getUserRooms,
   isRoomMember,
