@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 
 const { createMessage, getMessagesByRoomId } = require("./messages");
+const { ensureRoomExists, getRooms } = require("./rooms");
 
 function emitRoomMemberCount(io, roomId) {
   const count = io.sockets.adapter.rooms.get(roomId)?.size || 0;
@@ -28,32 +29,39 @@ function registerSocket(server) {
   io.on("connection", (socket) => {
     socket.emit("socket:ready", {
       socketId: socket.id,
+      rooms: getRooms(),
     });
 
     socket.on("room:join", (roomId) => {
-      const nextRoomId = String(roomId || "").trim();
+      try {
+        const nextRoomId = String(roomId || "").trim();
 
-      if (!nextRoomId) {
-        emitSocketError(socket, "roomId is required", "room:join");
-        return;
+        if (!nextRoomId) {
+          emitSocketError(socket, "roomId is required", "room:join");
+          return;
+        }
+
+        ensureRoomExists(nextRoomId);
+
+        const previousRoomId = socket.data.roomId;
+
+        if (previousRoomId && previousRoomId !== nextRoomId) {
+          socket.leave(previousRoomId);
+          emitRoomMemberCount(io, previousRoomId);
+        }
+
+        socket.join(nextRoomId);
+        socket.data.roomId = nextRoomId;
+
+        socket.emit("room:joined", {
+          roomId: nextRoomId,
+          messageCount: getMessagesByRoomId(nextRoomId).length,
+        });
+
+        emitRoomMemberCount(io, nextRoomId);
+      } catch (error) {
+        emitSocketError(socket, error.message, "room:join");
       }
-
-      const previousRoomId = socket.data.roomId;
-
-      if (previousRoomId && previousRoomId !== nextRoomId) {
-        socket.leave(previousRoomId);
-        emitRoomMemberCount(io, previousRoomId);
-      }
-
-      socket.join(nextRoomId);
-      socket.data.roomId = nextRoomId;
-
-      socket.emit("room:joined", {
-        roomId: nextRoomId,
-        messageCount: getMessagesByRoomId(nextRoomId).length,
-      });
-
-      emitRoomMemberCount(io, nextRoomId);
     });
 
     socket.on("room:leave", () => {

@@ -5,6 +5,7 @@ const {
   getMessagesByRoomId,
   createMessage,
 } = require("./messages");
+const { getRooms, getRoomById } = require("./rooms");
 
 const app = express();
 
@@ -12,6 +13,21 @@ app.use(express.json());
 
 app.get("/health", (req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/api/rooms", (req, res) => {
+  res.json({ rooms: getRooms() });
+});
+
+app.get("/api/rooms/:roomId", (req, res) => {
+  const room = getRoomById(req.params.roomId);
+
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+
+  res.json({ room });
 });
 
 app.get("/api/messages", (req, res) => {
@@ -22,7 +38,11 @@ app.get("/api/messages", (req, res) => {
     return;
   }
 
-  res.json({ messages: getMessagesByRoomId(roomId) });
+  try {
+    res.json({ messages: getMessagesByRoomId(roomId) });
+  } catch (error) {
+    res.status(404).json({ error: error.message });
+  }
 });
 
 app.post("/api/messages", (req, res) => {

@@ -1,3 +1,5 @@
+const { ensureRoomExists } = require("./rooms");
+
 const fakeMessages = [
   {
     id: "1",
@@ -47,6 +49,8 @@ const fakeMessages = [
 ];
 
 function getMessagesByRoomId(roomId) {
+  ensureRoomExists(roomId);
+
   return fakeMessages.filter((message) => message.roomId === roomId);
 }
 
@@ -60,6 +64,8 @@ function createMessage(payload) {
   if (!roomId || !userId || !username || !type || !content) {
     throw new Error("roomId, userId, username, type and content are required");
   }
+
+  ensureRoomExists(roomId);
 
   if (type !== "text") {
     throw new Error('type must be "text"');
