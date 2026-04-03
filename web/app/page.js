@@ -11,13 +11,14 @@ export default function HomePage() {
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("general");
   const [messages, setMessages] = useState([]);
-  const [userId, setUserId] = useState("u99");
-  const [username, setUsername] = useState("demo-user");
+  const [userId, setUserId] = useState("u1");
+  const [username, setUsername] = useState("william");
   const [content, setContent] = useState("");
   const [socketStatus, setSocketStatus] = useState("Connecting...");
   const [apiStatus, setApiStatus] = useState("Loading rooms...");
   const socketRef = useRef(null);
   const selectedRoomIdRef = useRef("general");
+  const userIdRef = useRef("u1");
 
   useEffect(() => {
     let isMounted = true;
@@ -58,7 +59,10 @@ export default function HomePage() {
 
     socket.on("connect", () => {
       setSocketStatus(`Connected: ${socket.id}`);
-      socket.emit("room:join", selectedRoomIdRef.current);
+      socket.emit("room:join", {
+        roomId: selectedRoomIdRef.current,
+        userId: userIdRef.current,
+      });
     });
 
     socket.on("room:joined", (payload) => {
@@ -98,6 +102,7 @@ export default function HomePage() {
 
   useEffect(() => {
     selectedRoomIdRef.current = selectedRoomId;
+    userIdRef.current = userId;
 
     if (!selectedRoomId) {
       return;
@@ -106,9 +111,12 @@ export default function HomePage() {
     loadMessages(selectedRoomId);
 
     if (socketRef.current?.connected) {
-      socketRef.current.emit("room:join", selectedRoomId);
+      socketRef.current.emit("room:join", {
+        roomId: selectedRoomId,
+        userId,
+      });
     }
-  }, [selectedRoomId]);
+  }, [selectedRoomId, userId]);
 
   async function loadMessages(roomId) {
     try {

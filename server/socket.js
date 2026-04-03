@@ -1,7 +1,8 @@
 const { Server } = require("socket.io");
 
 const { createMessage, getMessagesByRoomId } = require("./messages");
-const { ensureRoomExists, getRooms } = require("./rooms");
+const { ensureRoomMember } = require("./roomMembers");
+const { getRooms } = require("./rooms");
 
 function emitRoomMemberCount(io, roomId) {
   const count = io.sockets.adapter.rooms.get(roomId)?.size || 0;
@@ -32,16 +33,22 @@ function registerSocket(server) {
       rooms: getRooms(),
     });
 
-    socket.on("room:join", (roomId) => {
+    socket.on("room:join", (payload) => {
       try {
-        const nextRoomId = String(roomId || "").trim();
+        const nextRoomId = String(payload?.roomId || "").trim();
+        const nextUserId = String(payload?.userId || "").trim();
 
         if (!nextRoomId) {
           emitSocketError(socket, "roomId is required", "room:join");
           return;
         }
 
-        ensureRoomExists(nextRoomId);
+        if (!nextUserId) {
+          emitSocketError(socket, "userId is required", "room:join");
+          return;
+        }
+
+        ensureRoomMember(nextRoomId, nextUserId);
 
         const previousRoomId = socket.data.roomId;
 
@@ -52,9 +59,11 @@ function registerSocket(server) {
 
         socket.join(nextRoomId);
         socket.data.roomId = nextRoomId;
+        socket.data.userId = nextUserId;
 
         socket.emit("room:joined", {
           roomId: nextRoomId,
+          userId: nextUserId,
           messageCount: getMessagesByRoomId(nextRoomId).length,
         });
 
@@ -84,7 +93,9 @@ function registerSocket(server) {
     socket.on("message:send", (payload) => {
       try {
         const activeRoomId = socket.data.roomId;
+        const activeUserId = socket.data.userId;
         const payloadRoomId = String(payload?.roomId || "").trim();
+        const payloadUserId = String(payload?.userId || "").trim();
 
         if (!activeRoomId) {
           throw new Error("Join a room before sending messages");
@@ -92,6 +103,10 @@ function registerSocket(server) {
 
         if (activeRoomId !== payloadRoomId) {
           throw new Error("payload roomId must match the active room");
+        }
+
+        if (!activeUserId || activeUserId !== payloadUserId) {
+          throw new Error("payload userId must match the active socket user");
         }
 
         const newMessage = createMessage(payload);

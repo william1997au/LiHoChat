@@ -1,5 +1,5 @@
 const { ensureRoomExists } = require("./rooms");
-const { ensureUserExists } = require("./users");
+const { ensureUserExists, getUserById } = require("./users");
 
 const fakeRoomMembers = [
   {
@@ -38,6 +38,22 @@ function getRoomMembers(roomId) {
   ensureRoomExists(roomId);
 
   return fakeRoomMembers.filter((membership) => membership.roomId === roomId);
+}
+
+function getRoomMemberProfiles(roomId) {
+  return getRoomMembers(roomId).map((membership) => {
+    const user = getUserById(membership.userId);
+
+    return {
+      roomId: membership.roomId,
+      userId: membership.userId,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    };
+  });
 }
 
 function getUserRoomMemberships(userId) {
@@ -85,6 +101,7 @@ function addRoomMember({ roomId, userId, role = "member" }) {
 module.exports = {
   fakeRoomMembers,
   getRoomMembers,
+  getRoomMemberProfiles,
   getUserRoomMemberships,
   isRoomMember,
   ensureRoomMember,
