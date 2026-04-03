@@ -51,7 +51,11 @@ function getMessagesByRoomId(roomId) {
 }
 
 function createMessage(payload) {
-  const { roomId, userId, username, type, content } = payload;
+  const roomId = String(payload.roomId || "").trim();
+  const userId = String(payload.userId || "").trim();
+  const username = String(payload.username || "").trim();
+  const type = String(payload.type || "").trim();
+  const content = String(payload.content || "").trim();
 
   if (!roomId || !userId || !username || !type || !content) {
     throw new Error("roomId, userId, username, type and content are required");
