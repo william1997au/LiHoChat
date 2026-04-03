@@ -117,8 +117,15 @@ function createMessage(payload) {
   return newMessage;
 }
 
+function removeMessagesByRoomId(roomId) {
+  const nextMessages = fakeMessages.filter((message) => message.roomId !== roomId);
+  fakeMessages.length = 0;
+  fakeMessages.push(...nextMessages);
+}
+
 module.exports = {
   fakeMessages,
   getMessagesByRoomId,
   createMessage,
+  removeMessagesByRoomId,
 };

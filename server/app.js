@@ -1,7 +1,8 @@
 const cors = require("cors");
 const express = require("express");
-const path = require("path");
 
+const { deleteRoomForUser, getOrCreateDirectRoom } = require("./directRooms");
+const { getFriendsByUserId } = require("./friendships");
 const {
   fakeMessages,
   getMessagesByRoomId,
@@ -79,6 +80,38 @@ app.get("/api/users/:userId/rooms", (req, res) => {
   });
 });
 
+app.get("/api/users/:userId/friends", (req, res) => {
+  const user = getUserById(req.params.userId);
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({
+    userId: user.id,
+    friends: getFriendsByUserId(user.id),
+  });
+});
+
+app.post("/api/direct-rooms", (req, res) => {
+  try {
+    const userId = String(req.body?.userId || "").trim();
+    const friendUserId = String(req.body?.friendUserId || "").trim();
+
+    if (!userId || !friendUserId) {
+      res.status(400).json({ error: "userId and friendUserId are required" });
+      return;
+    }
+
+    const result = getOrCreateDirectRoom(userId, friendUserId);
+
+    res.status(result.created ? 201 : 200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.get("/api/messages", (req, res) => {
   const { roomId } = req.query;
 
@@ -99,6 +132,26 @@ app.post("/api/messages", (req, res) => {
     const newMessage = createMessage(req.body);
 
     res.status(201).json({ message: newMessage });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete("/api/rooms/:roomId", (req, res) => {
+  try {
+    const userId = String(req.query.userId || "").trim();
+
+    if (!userId) {
+      res.status(400).json({ error: "userId is required" });
+      return;
+    }
+
+    const room = deleteRoomForUser(req.params.roomId, userId);
+
+    res.json({
+      room,
+      deleted: true,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

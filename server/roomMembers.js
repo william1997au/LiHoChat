@@ -136,6 +136,14 @@ function addRoomMember({ roomId, userId, role = "member" }) {
   return membership;
 }
 
+function removeRoomMembers(roomId) {
+  const nextMemberships = fakeRoomMembers.filter(
+    (membership) => membership.roomId !== roomId,
+  );
+  fakeRoomMembers.length = 0;
+  fakeRoomMembers.push(...nextMemberships);
+}
+
 module.exports = {
   fakeRoomMembers,
   getRoomMembers,
@@ -145,4 +153,5 @@ module.exports = {
   isRoomMember,
   ensureRoomMember,
   addRoomMember,
+  removeRoomMembers,
 };

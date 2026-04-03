@@ -36,6 +36,10 @@ const fakeRooms = [
   },
 ];
 
+function createDirectRoomName(userA, userB) {
+  return [userA.displayName, userB.displayName].sort().join(" & ");
+}
+
 function getRooms() {
   return fakeRooms;
 }
@@ -54,9 +58,49 @@ function ensureRoomExists(roomId) {
   return room;
 }
 
+function getDirectRoomByUserIds(userId, friendUserId, roomMembers) {
+  return fakeRooms.find((room) => {
+    if (room.type !== "direct") {
+      return false;
+    }
+
+    const memberIds = roomMembers
+      .filter((membership) => membership.roomId === room.id)
+      .map((membership) => membership.userId)
+      .sort();
+    const targetIds = [userId, friendUserId].sort();
+
+    return (
+      memberIds.length === 2 &&
+      memberIds[0] === targetIds[0] &&
+      memberIds[1] === targetIds[1]
+    );
+  }) || null;
+}
+
+function addRoom(room) {
+  fakeRooms.push(room);
+  return room;
+}
+
+function removeRoom(roomId) {
+  const roomIndex = fakeRooms.findIndex((room) => room.id === roomId);
+
+  if (roomIndex === -1) {
+    throw new Error(`Room "${roomId}" does not exist`);
+  }
+
+  const [removedRoom] = fakeRooms.splice(roomIndex, 1);
+  return removedRoom;
+}
+
 module.exports = {
   fakeRooms,
   getRooms,
   getRoomById,
   ensureRoomExists,
+  createDirectRoomName,
+  getDirectRoomByUserIds,
+  addRoom,
+  removeRoom,
 };
