@@ -48,6 +48,33 @@ const fakeMessages = [
     content: "I am building the message API first.",
     createdAt: new Date().toISOString(),
   },
+  {
+    id: "6",
+    roomId: "dm-u1-u2",
+    userId: "u1",
+    username: "william",
+    type: "text",
+    content: "Amy, this direct room is ready now.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "7",
+    roomId: "dm-u1-u2",
+    userId: "u2",
+    username: "amy",
+    type: "text",
+    content: "Good. Next step is building the friend flow.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "8",
+    roomId: "dm-u1-u3",
+    userId: "u3",
+    username: "kevin",
+    type: "text",
+    content: "This one will become the private chat example.",
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 function getMessagesByRoomId(roomId) {

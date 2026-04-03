@@ -16,6 +16,10 @@ export function getRooms() {
   return request("/api/rooms");
 }
 
+export function getUserRooms(userId) {
+  return request(`/api/users/${encodeURIComponent(userId)}/rooms`);
+}
+
 export function getMessages(roomId) {
   return request(`/api/messages?roomId=${encodeURIComponent(roomId)}`);
 }

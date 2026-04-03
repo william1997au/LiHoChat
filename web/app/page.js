@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getMessages, getRooms } from "../lib/api";
+import { getMessages, getUserRooms } from "../lib/api";
 import { createSocket } from "../lib/socket";
 
 const DEFAULT_ERROR = "Something went wrong";
@@ -20,12 +20,17 @@ export default function HomePage() {
   const selectedRoomIdRef = useRef("general");
   const userIdRef = useRef("u1");
 
+  const groupedRooms = {
+    group: rooms.filter((room) => room.type === "group"),
+    direct: rooms.filter((room) => room.type === "direct"),
+  };
+
   useEffect(() => {
     let isMounted = true;
 
-    async function bootstrap() {
+    async function loadVisibleRooms(nextUserId) {
       try {
-        const roomData = await getRooms();
+        const roomData = await getUserRooms(nextUserId);
 
         if (!isMounted) {
           return;
@@ -34,19 +39,29 @@ export default function HomePage() {
         setRooms(roomData.rooms);
 
         if (roomData.rooms.length > 0) {
-          const firstRoomId = roomData.rooms[0].id;
-          setSelectedRoomId(firstRoomId);
+          const hasCurrentRoom = roomData.rooms.some(
+            (room) => room.id === selectedRoomIdRef.current,
+          );
+
+          setSelectedRoomId(
+            hasCurrentRoom ? selectedRoomIdRef.current : roomData.rooms[0].id,
+          );
         } else {
+          setSelectedRoomId("");
+          setMessages([]);
           setApiStatus("No rooms available");
         }
       } catch (error) {
         if (isMounted) {
+          setRooms([]);
+          setSelectedRoomId("");
+          setMessages([]);
           setApiStatus(error.message || DEFAULT_ERROR);
         }
       }
     }
 
-    bootstrap();
+    loadVisibleRooms(userIdRef.current);
 
     return () => {
       isMounted = false;
@@ -54,15 +69,62 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function refreshVisibleRooms() {
+      try {
+        const roomData = await getUserRooms(userId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRooms(roomData.rooms);
+
+        if (roomData.rooms.length === 0) {
+          setSelectedRoomId("");
+          setMessages([]);
+          setApiStatus("No rooms available");
+          return;
+        }
+
+        const hasCurrentRoom = roomData.rooms.some(
+          (room) => room.id === selectedRoomIdRef.current,
+        );
+
+        if (!hasCurrentRoom) {
+          setSelectedRoomId(roomData.rooms[0].id);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setRooms([]);
+          setSelectedRoomId("");
+          setMessages([]);
+          setApiStatus(error.message || DEFAULT_ERROR);
+        }
+      }
+    }
+
+    refreshVisibleRooms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
     const socket = createSocket();
     socketRef.current = socket;
 
     socket.on("connect", () => {
       setSocketStatus(`Connected: ${socket.id}`);
-      socket.emit("room:join", {
-        roomId: selectedRoomIdRef.current,
-        userId: userIdRef.current,
-      });
+
+      if (selectedRoomIdRef.current) {
+        socket.emit("room:join", {
+          roomId: selectedRoomIdRef.current,
+          userId: userIdRef.current,
+        });
+      }
     });
 
     socket.on("room:joined", (payload) => {
@@ -70,7 +132,7 @@ export default function HomePage() {
     });
 
     socket.on("room:member_count", (payload) => {
-      if (payload.roomId === selectedRoomId) {
+      if (payload.roomId === selectedRoomIdRef.current) {
         setSocketStatus(
           `Room ${payload.roomId} currently has ${payload.count} socket member(s)`,
         );
@@ -140,6 +202,11 @@ export default function HomePage() {
       return;
     }
 
+    if (!selectedRoomId) {
+      setSocketStatus("No room selected");
+      return;
+    }
+
     socketRef.current.emit("message:send", {
       roomId: selectedRoomId,
       userId,
@@ -194,17 +261,50 @@ export default function HomePage() {
           <div className="section-header">
             <h2>Rooms</h2>
           </div>
-          {rooms.map((room) => (
-            <button
-              key={room.id}
-              className={room.id === selectedRoomId ? "room active" : "room"}
-              onClick={() => handleSelectRoom(room.id)}
-              type="button"
-            >
-              <strong>{room.name}</strong>
-              <span>{room.description}</span>
-            </button>
-          ))}
+
+          {groupedRooms.group.length > 0 ? (
+            <div className="room-section">
+              <div className="room-section-title">Groups</div>
+              {groupedRooms.group.map((room) => (
+                <button
+                  key={room.id}
+                  className={
+                    room.id === selectedRoomId ? "room active" : "room"
+                  }
+                  onClick={() => handleSelectRoom(room.id)}
+                  type="button"
+                >
+                  <div className="room-title-row">
+                    <strong>{room.name}</strong>
+                    <span className="room-type-badge">{room.type}</span>
+                  </div>
+                  <span>{room.description}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {groupedRooms.direct.length > 0 ? (
+            <div className="room-section">
+              <div className="room-section-title">Direct</div>
+              {groupedRooms.direct.map((room) => (
+                <button
+                  key={room.id}
+                  className={
+                    room.id === selectedRoomId ? "room active" : "room"
+                  }
+                  onClick={() => handleSelectRoom(room.id)}
+                  type="button"
+                >
+                  <div className="room-title-row">
+                    <strong>{room.name}</strong>
+                    <span className="room-type-badge">{room.type}</span>
+                  </div>
+                  <span>{room.description}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -212,7 +312,11 @@ export default function HomePage() {
         <div className="chat-header">
           <div>
             <div className="eyebrow">Current Room</div>
-            <h2>{selectedRoomId}</h2>
+            <h2>
+              {rooms.find((room) => room.id === selectedRoomId)?.name ||
+                selectedRoomId ||
+                "No room"}
+            </h2>
           </div>
         </div>
 

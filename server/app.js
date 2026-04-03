@@ -7,7 +7,7 @@ const {
   getMessagesByRoomId,
   createMessage,
 } = require("./messages");
-const { getRoomMemberProfiles } = require("./roomMembers");
+const { getRoomMemberProfiles, getUserRooms } = require("./roomMembers");
 const { getRooms, getRoomById } = require("./rooms");
 const { getUsers, getUserById } = require("./users");
 
@@ -63,6 +63,20 @@ app.get("/api/users/:userId", (req, res) => {
   }
 
   res.json({ user });
+});
+
+app.get("/api/users/:userId/rooms", (req, res) => {
+  const user = getUserById(req.params.userId);
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json({
+    userId: user.id,
+    rooms: getUserRooms(user.id),
+  });
 });
 
 app.get("/api/messages", (req, res) => {
