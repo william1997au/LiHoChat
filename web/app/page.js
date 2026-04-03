@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getMessages, getUserRooms } from "../lib/api";
+import { getMessages, getUserRooms, getUsers } from "../lib/api";
 import { createSocket } from "../lib/socket";
 
 const DEFAULT_ERROR = "Something went wrong";
 
 export default function HomePage() {
+  const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("general");
   const [messages, setMessages] = useState([]);
@@ -71,6 +72,44 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
+    async function loadUsers() {
+      try {
+        const userData = await getUsers();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setUsers(userData.users);
+
+        const currentUser = userData.users.find((user) => user.id === userId);
+
+        if (currentUser) {
+          setUsername(currentUser.username);
+          return;
+        }
+
+        if (userData.users.length > 0) {
+          setUserId(userData.users[0].id);
+          setUsername(userData.users[0].username);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setApiStatus(error.message || DEFAULT_ERROR);
+        }
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
     async function refreshVisibleRooms() {
       try {
         const roomData = await getUserRooms(userId);
@@ -111,6 +150,14 @@ export default function HomePage() {
       isMounted = false;
     };
   }, [userId]);
+
+  useEffect(() => {
+    const currentUser = users.find((user) => user.id === userId);
+
+    if (currentUser) {
+      setUsername(currentUser.username);
+    }
+  }, [userId, users]);
 
   useEffect(() => {
     const socket = createSocket();
@@ -194,6 +241,10 @@ export default function HomePage() {
     setSelectedRoomId(roomId);
   }
 
+  function handleSelectUser(nextUserId) {
+    setUserId(nextUserId);
+  }
+
   function handleSendMessage(event) {
     event.preventDefault();
 
@@ -229,21 +280,18 @@ export default function HomePage() {
         </p>
 
         <div className="field">
-          <label htmlFor="userId">User ID</label>
-          <input
+          <label htmlFor="userId">Current User</label>
+          <select
             id="userId"
             value={userId}
-            onChange={(event) => setUserId(event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="username">Username</label>
-          <input
-            id="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
+            onChange={(event) => handleSelectUser(event.target.value)}
+          >
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.displayName} ({user.username})
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="status-box">
