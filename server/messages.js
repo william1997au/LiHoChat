@@ -1,5 +1,5 @@
 const { ensureRoomExists } = require("./repositories/rooms.repository");
-const { ensureRoomMember } = require("./roomMembers");
+const { ensureRoomMember } = require("./repositories/roomMembers.repository");
 const { ensureUserExists } = require("./repositories/users.repository");
 
 const fakeMessages = [

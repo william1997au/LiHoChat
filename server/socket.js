@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 
 const { createMessage, getMessagesByRoomId } = require("./messages");
-const { ensureRoomMember } = require("./roomMembers");
+const { ensureRoomMember } = require("./repositories/roomMembers.repository");
 const { getRooms } = require("./repositories/rooms.repository");
 
 function emitRoomMemberCount(io, roomId) {

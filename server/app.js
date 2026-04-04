@@ -13,7 +13,7 @@ const {
   getRoomDetail,
   getRoomMemberProfiles,
   getUserRooms,
-} = require("./roomMembers");
+} = require("./repositories/roomMembers.repository");
 const { getRooms, getRoomById } = require("./repositories/rooms.repository");
 const {
   getUsers,

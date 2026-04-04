@@ -12,7 +12,7 @@ const {
   fakeRoomMembers,
   getUserRoomMemberships,
   removeRoomMembers,
-} = require("../roomMembers");
+} = require("../repositories/roomMembers.repository");
 const {
   ensureUserExists,
   getUserById,

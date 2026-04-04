@@ -1,5 +1,5 @@
 const { addRoom } = require("../repositories/rooms.repository");
-const { addRoomMember } = require("../roomMembers");
+const { addRoomMember } = require("../repositories/roomMembers.repository");
 const {
   ensureUserExists,
   getUserById,
