@@ -2,25 +2,8 @@ const cors = require("cors");
 const express = require("express");
 
 const { roomsRouter } = require("./routes/rooms.routes");
-const {
-  getFriendsByUserId,
-} = require("./repositories/friendships.repository");
-const { getMessages } = require("./repositories/messages.repository");
-const { deleteRoomForUser } = require("./services/privateRooms.service");
-const {
-  getRoomDetail,
-  getRoomMemberProfiles,
-  getUserRooms,
-} = require("./repositories/roomMembers.repository");
-const { getRooms, getRoomById } = require("./repositories/rooms.repository");
-const {
-  getUsers,
-  getUserById,
-} = require("./repositories/users.repository");
-const {
-  createMessage,
-  listMessagesByRoomId,
-} = require("./services/messages.service");
+const { usersRouter } = require("./routes/users.routes");
+const { messagesRouter } = require("./routes/messages.routes");
 
 const app = express();
 
@@ -31,123 +14,11 @@ app.use(
 );
 app.use(express.json());
 app.use("/api", roomsRouter);
+app.use("/api", usersRouter);
+app.use("/api", messagesRouter);
 
 app.get("/health", (req, res) => {
   res.json({ ok: true });
-});
-
-app.get("/api/rooms", (req, res) => {
-  res.json({ rooms: getRooms() });
-});
-
-app.get("/api/rooms/:roomId", (req, res) => {
-  const room = getRoomById(req.params.roomId);
-
-  if (!room) {
-    res.status(404).json({ error: "Room not found" });
-    return;
-  }
-
-  res.json({ room: getRoomDetail(room) });
-});
-
-app.get("/api/rooms/:roomId/members", (req, res) => {
-  try {
-    res.json({
-      roomId: req.params.roomId,
-      members: getRoomMemberProfiles(req.params.roomId),
-    });
-  } catch (error) {
-    res.status(404).json({ error: error.message });
-  }
-});
-
-app.get("/api/users", (req, res) => {
-  res.json({ users: getUsers() });
-});
-
-app.get("/api/users/:userId", (req, res) => {
-  const user = getUserById(req.params.userId);
-
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  res.json({ user });
-});
-
-app.get("/api/users/:userId/rooms", (req, res) => {
-  const user = getUserById(req.params.userId);
-
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  res.json({
-    userId: user.id,
-    rooms: getUserRooms(user.id),
-  });
-});
-
-app.get("/api/users/:userId/friends", (req, res) => {
-  const user = getUserById(req.params.userId);
-
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  res.json({
-    userId: user.id,
-    friends: getFriendsByUserId(user.id),
-  });
-});
-
-app.get("/api/messages", (req, res) => {
-  const { roomId } = req.query;
-
-  if (!roomId) {
-    res.json({ messages: getMessages() });
-    return;
-  }
-
-  try {
-    res.json({ messages: listMessagesByRoomId(roomId) });
-  } catch (error) {
-    res.status(404).json({ error: error.message });
-  }
-});
-
-app.post("/api/messages", (req, res) => {
-  try {
-    const newMessage = createMessage(req.body);
-
-    res.status(201).json({ message: newMessage });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.delete("/api/rooms/:roomId", (req, res) => {
-  try {
-    const userId = String(req.query.userId || "").trim();
-
-    if (!userId) {
-      res.status(400).json({ error: "userId is required" });
-      return;
-    }
-
-    const room = deleteRoomForUser(req.params.roomId, userId);
-
-    res.json({
-      room,
-      deleted: true,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
 });
 
 app.use((req, res) => {

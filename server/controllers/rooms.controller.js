@@ -1,5 +1,39 @@
+const {
+  getRoomDetail,
+  getRoomMemberProfiles,
+} = require("../repositories/roomMembers.repository");
+const { getRooms, getRoomById } = require("../repositories/rooms.repository");
 const { createGroupRoom } = require("../services/groupRooms.service");
-const { getOrCreatePrivateRoom } = require("../services/privateRooms.service");
+const {
+  deleteRoomForUser,
+  getOrCreatePrivateRoom,
+} = require("../services/privateRooms.service");
+
+function listRoomsController(req, res) {
+  res.json({ rooms: getRooms() });
+}
+
+function getRoomController(req, res) {
+  const room = getRoomById(req.params.roomId);
+
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+
+  res.json({ room: getRoomDetail(room) });
+}
+
+function listRoomMembersController(req, res) {
+  try {
+    res.json({
+      roomId: req.params.roomId,
+      members: getRoomMemberProfiles(req.params.roomId),
+    });
+  } catch (error) {
+    res.status(404).json({ error: error.message });
+  }
+}
 
 function createRoomController(req, res) {
   try {
@@ -45,6 +79,30 @@ function createRoomController(req, res) {
   }
 }
 
+function deleteRoomController(req, res) {
+  try {
+    const userId = String(req.query.userId || "").trim();
+
+    if (!userId) {
+      res.status(400).json({ error: "userId is required" });
+      return;
+    }
+
+    const room = deleteRoomForUser(req.params.roomId, userId);
+
+    res.json({
+      room,
+      deleted: true,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+}
+
 module.exports = {
+  listRoomsController,
+  getRoomController,
+  listRoomMembersController,
   createRoomController,
+  deleteRoomController,
 };
