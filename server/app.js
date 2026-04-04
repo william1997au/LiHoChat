@@ -15,7 +15,10 @@ const {
   getUserRooms,
 } = require("./roomMembers");
 const { getRooms, getRoomById } = require("./repositories/rooms.repository");
-const { getUsers, getUserById } = require("./users");
+const {
+  getUsers,
+  getUserById,
+} = require("./repositories/users.repository");
 
 const app = express();
 

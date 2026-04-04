@@ -13,7 +13,10 @@ const {
   getUserRoomMemberships,
   removeRoomMembers,
 } = require("../roomMembers");
-const { ensureUserExists, getUserById } = require("../users");
+const {
+  ensureUserExists,
+  getUserById,
+} = require("../repositories/users.repository");
 
 function getOrCreatePrivateRoom(userId, friendUserId) {
   ensureUserExists(userId);
