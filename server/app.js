@@ -2,7 +2,9 @@ const cors = require("cors");
 const express = require("express");
 
 const { roomsRouter } = require("./routes/rooms.routes");
-const { getFriendsByUserId } = require("./friendships");
+const {
+  getFriendsByUserId,
+} = require("./repositories/friendships.repository");
 const { getMessages } = require("./repositories/messages.repository");
 const { deleteRoomForUser } = require("./services/privateRooms.service");
 const {

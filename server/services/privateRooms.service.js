@@ -1,4 +1,6 @@
-const { ensureFriendship } = require("../friendships");
+const {
+  ensureFriendship,
+} = require("../repositories/friendships.repository");
 const {
   removeMessagesByRoomId,
 } = require("../repositories/messages.repository");

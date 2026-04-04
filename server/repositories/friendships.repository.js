@@ -1,7 +1,7 @@
 const {
   ensureUserExists,
   getUserById,
-} = require("./repositories/users.repository");
+} = require("./users.repository");
 
 const fakeFriendships = [
   {
