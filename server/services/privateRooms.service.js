@@ -1,5 +1,7 @@
 const { ensureFriendship } = require("../friendships");
-const { removeMessagesByRoomId } = require("../messages");
+const {
+  removeMessagesByRoomId,
+} = require("../repositories/messages.repository");
 const {
   addRoom,
   createPrivateRoomName,

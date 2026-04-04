@@ -3,12 +3,8 @@ const express = require("express");
 
 const { roomsRouter } = require("./routes/rooms.routes");
 const { getFriendsByUserId } = require("./friendships");
+const { getMessages } = require("./repositories/messages.repository");
 const { deleteRoomForUser } = require("./services/privateRooms.service");
-const {
-  fakeMessages,
-  getMessagesByRoomId,
-  createMessage,
-} = require("./messages");
 const {
   getRoomDetail,
   getRoomMemberProfiles,
@@ -19,6 +15,10 @@ const {
   getUsers,
   getUserById,
 } = require("./repositories/users.repository");
+const {
+  createMessage,
+  listMessagesByRoomId,
+} = require("./services/messages.service");
 
 const app = express();
 
@@ -107,12 +107,12 @@ app.get("/api/messages", (req, res) => {
   const { roomId } = req.query;
 
   if (!roomId) {
-    res.json({ messages: fakeMessages });
+    res.json({ messages: getMessages() });
     return;
   }
 
   try {
-    res.json({ messages: getMessagesByRoomId(roomId) });
+    res.json({ messages: listMessagesByRoomId(roomId) });
   } catch (error) {
     res.status(404).json({ error: error.message });
   }
