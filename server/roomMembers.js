@@ -1,4 +1,4 @@
-const { ensureRoomExists, getRoomById } = require("./rooms");
+const { ensureRoomExists, getRoomById } = require("./repositories/rooms.repository");
 const { ensureUserExists, getUserById } = require("./users");
 
 const fakeRoomMembers = [

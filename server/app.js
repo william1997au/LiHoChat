@@ -1,9 +1,9 @@
 const cors = require("cors");
 const express = require("express");
 
-const { deleteRoomForUser, getOrCreateDirectRoom } = require("./directRooms");
+const { roomsRouter } = require("./routes/rooms.routes");
 const { getFriendsByUserId } = require("./friendships");
-const { createGroupRoom } = require("./groupRooms");
+const { deleteRoomForUser } = require("./services/privateRooms.service");
 const {
   fakeMessages,
   getMessagesByRoomId,
@@ -14,7 +14,7 @@ const {
   getRoomMemberProfiles,
   getUserRooms,
 } = require("./roomMembers");
-const { getRooms, getRoomById } = require("./rooms");
+const { getRooms, getRoomById } = require("./repositories/rooms.repository");
 const { getUsers, getUserById } = require("./users");
 
 const app = express();
@@ -25,6 +25,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use("/api", roomsRouter);
 
 app.get("/health", (req, res) => {
   res.json({ ok: true });
@@ -97,44 +98,6 @@ app.get("/api/users/:userId/friends", (req, res) => {
     userId: user.id,
     friends: getFriendsByUserId(user.id),
   });
-});
-
-app.post("/api/direct-rooms", (req, res) => {
-  try {
-    const userId = String(req.body?.userId || "").trim();
-    const friendUserId = String(req.body?.friendUserId || "").trim();
-
-    if (!userId || !friendUserId) {
-      res.status(400).json({ error: "userId and friendUserId are required" });
-      return;
-    }
-
-    const result = getOrCreateDirectRoom(userId, friendUserId);
-
-    res.status(result.created ? 201 : 200).json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.post("/api/group-rooms", (req, res) => {
-  try {
-    const creatorUserId = String(req.body?.creatorUserId || "").trim();
-    const name = String(req.body?.name || "").trim();
-    const memberUserIds = Array.isArray(req.body?.memberUserIds)
-      ? req.body.memberUserIds
-      : [];
-
-    const room = createGroupRoom({
-      creatorUserId,
-      name,
-      memberUserIds,
-    });
-
-    res.status(201).json({ room });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
 });
 
 app.get("/api/messages", (req, res) => {

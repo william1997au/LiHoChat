@@ -1,4 +1,4 @@
-const { ensureRoomExists } = require("./rooms");
+const { ensureRoomExists } = require("./repositories/rooms.repository");
 const { ensureRoomMember } = require("./roomMembers");
 const { ensureUserExists } = require("./users");
 
@@ -54,7 +54,7 @@ const fakeMessages = [
     userId: "u1",
     username: "william",
     type: "text",
-    content: "Amy, this direct room is ready now.",
+    content: "Amy, this private room is ready now.",
     createdAt: new Date().toISOString(),
   },
   {

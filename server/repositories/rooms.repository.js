@@ -22,21 +22,21 @@ const fakeRooms = [
   },
   {
     id: "dm-u1-u2",
-    type: "direct",
+    type: "private",
     name: "William & Amy",
-    description: "Direct chat between William and Amy",
+    description: "Private chat between William and Amy",
     createdAt: new Date().toISOString(),
   },
   {
     id: "dm-u1-u3",
-    type: "direct",
+    type: "private",
     name: "William & Kevin",
-    description: "Direct chat between William and Kevin",
+    description: "Private chat between William and Kevin",
     createdAt: new Date().toISOString(),
   },
 ];
 
-function createDirectRoomName(userA, userB) {
+function createPrivateRoomName(userA, userB) {
   return [userA.displayName, userB.displayName].sort().join(" & ");
 }
 
@@ -58,9 +58,9 @@ function ensureRoomExists(roomId) {
   return room;
 }
 
-function getDirectRoomByUserIds(userId, friendUserId, roomMembers) {
+function getPrivateRoomByUserIds(userId, friendUserId, roomMembers) {
   return fakeRooms.find((room) => {
-    if (room.type !== "direct") {
+    if (room.type !== "private") {
       return false;
     }
 
@@ -99,8 +99,8 @@ module.exports = {
   getRooms,
   getRoomById,
   ensureRoomExists,
-  createDirectRoomName,
-  getDirectRoomByUserIds,
+  createPrivateRoomName,
+  getPrivateRoomByUserIds,
   addRoom,
   removeRoom,
 };

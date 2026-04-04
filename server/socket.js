@@ -2,7 +2,7 @@ const { Server } = require("socket.io");
 
 const { createMessage, getMessagesByRoomId } = require("./messages");
 const { ensureRoomMember } = require("./roomMembers");
-const { getRooms } = require("./rooms");
+const { getRooms } = require("./repositories/rooms.repository");
 
 function emitRoomMemberCount(io, roomId) {
   const count = io.sockets.adapter.rooms.get(roomId)?.size || 0;

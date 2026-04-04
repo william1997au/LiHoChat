@@ -44,7 +44,7 @@ function ensureFriendship(userId, friendUserId) {
   ensureUserExists(friendUserId);
 
   if (userId === friendUserId) {
-    throw new Error("Cannot create a direct room with the same user");
+    throw new Error("Cannot create a private room with the same user");
   }
 
   if (!isFriendPair(userId, friendUserId)) {

@@ -28,13 +28,13 @@ export function getFriends(userId) {
   return request(`/api/users/${encodeURIComponent(userId)}/friends`);
 }
 
-export function getOrCreateDirectRoom(userId, friendUserId) {
-  return request("/api/direct-rooms", {
+export function getOrCreatePrivateRoom(userId, friendUserId) {
+  return request("/api/rooms", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ userId, friendUserId }),
+    body: JSON.stringify({ type: "private", userId, friendUserId }),
   });
 }
 

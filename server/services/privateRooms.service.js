@@ -1,27 +1,30 @@
-const { ensureFriendship } = require("./friendships");
-const { removeMessagesByRoomId } = require("./messages");
+const { ensureFriendship } = require("../friendships");
+const { removeMessagesByRoomId } = require("../messages");
 const {
   addRoom,
-  createDirectRoomName,
+  createPrivateRoomName,
   ensureRoomExists,
-  getDirectRoomByUserIds,
-  getRoomById,
+  getPrivateRoomByUserIds,
   removeRoom,
-} = require("./rooms");
+} = require("../repositories/rooms.repository");
 const {
   addRoomMember,
   fakeRoomMembers,
   getUserRoomMemberships,
   removeRoomMembers,
-} = require("./roomMembers");
-const { ensureUserExists, getUserById } = require("./users");
+} = require("../roomMembers");
+const { ensureUserExists, getUserById } = require("../users");
 
-function getOrCreateDirectRoom(userId, friendUserId) {
+function getOrCreatePrivateRoom(userId, friendUserId) {
   ensureUserExists(userId);
   ensureUserExists(friendUserId);
   ensureFriendship(userId, friendUserId);
 
-  const existingRoom = getDirectRoomByUserIds(userId, friendUserId, fakeRoomMembers);
+  const existingRoom = getPrivateRoomByUserIds(
+    userId,
+    friendUserId,
+    fakeRoomMembers,
+  );
 
   if (existingRoom) {
     return {
@@ -35,9 +38,9 @@ function getOrCreateDirectRoom(userId, friendUserId) {
   const roomId = `dm-${[userId, friendUserId].sort().join("-")}`;
   const room = addRoom({
     id: roomId,
-    type: "direct",
-    name: createDirectRoomName(user, friend),
-    description: `Direct chat between ${user.displayName} and ${friend.displayName}`,
+    type: "private",
+    name: createPrivateRoomName(user, friend),
+    description: `Private chat between ${user.displayName} and ${friend.displayName}`,
     createdAt: new Date().toISOString(),
   });
 
@@ -62,8 +65,8 @@ function deleteRoomForUser(roomId, userId) {
     throw new Error(`User "${userId}" cannot delete room "${roomId}"`);
   }
 
-  if (room.type !== "direct") {
-    throw new Error("Only direct rooms can be deleted for now");
+  if (room.type !== "private") {
+    throw new Error("Only private rooms can be deleted for now");
   }
 
   removeMessagesByRoomId(roomId);
@@ -74,7 +77,6 @@ function deleteRoomForUser(roomId, userId) {
 }
 
 module.exports = {
-  getOrCreateDirectRoom,
+  getOrCreatePrivateRoom,
   deleteRoomForUser,
-  getRoomById,
 };

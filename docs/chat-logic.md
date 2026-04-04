@@ -18,7 +18,7 @@ The chat model is built around four core data structures:
 `rooms` support two types:
 
 - `group`
-- `direct`
+- `private`
 
 Both types use the same message flow. The difference is only in room membership and presentation.
 
@@ -157,4 +157,4 @@ Before a message is created, the backend verifies:
 3. The user belongs to the room
 4. The socket user matches the message sender
 
-This keeps the `direct` and `group` chat models consistent under the same flow.
+This keeps the `private` and `group` chat models consistent under the same flow.

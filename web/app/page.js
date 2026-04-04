@@ -6,7 +6,7 @@ import {
   deleteRoom,
   getFriends,
   getMessages,
-  getOrCreateDirectRoom,
+  getOrCreatePrivateRoom,
   getUserRooms,
   getUsers,
 } from "../lib/api";
@@ -59,7 +59,7 @@ export default function HomePage() {
 
   const selectedRoom =
     rooms.find((room) => room.id === selectedRoomId) || null;
-  const directRooms = filteredRooms.filter((room) => room.type === "direct");
+  const privateRooms = filteredRooms.filter((room) => room.type === "private");
   const groupRooms = filteredRooms.filter((room) => room.type === "group");
 
   useEffect(() => {
@@ -249,15 +249,15 @@ export default function HomePage() {
 
   async function handleOpenFriendChat(friendUserId) {
     try {
-      const result = await getOrCreateDirectRoom(userId, friendUserId);
+      const result = await getOrCreatePrivateRoom(userId, friendUserId);
       const roomData = await getUserRooms(userId);
 
       setRooms(roomData.rooms);
       setSelectedRoomId(result.room.id);
       setApiStatus(
         result.created
-          ? `Created direct room: ${result.room.name}`
-          : `Opened direct room: ${result.room.name}`,
+          ? `Created private room: ${result.room.name}`
+          : `Opened private room: ${result.room.name}`,
       );
 
       if (socketRef.current?.connected) {
@@ -293,7 +293,7 @@ export default function HomePage() {
         }
       }
 
-      setApiStatus("Direct room deleted");
+      setApiStatus("Private room deleted");
     } catch (error) {
       setApiStatus(error.message || DEFAULT_ERROR);
     }
@@ -423,11 +423,11 @@ export default function HomePage() {
               <h2>聊天室 {filteredRooms.length}</h2>
             </div>
 
-            {directRooms.length > 0 ? (
+            {privateRooms.length > 0 ? (
               <div className="room-section">
-                <div className="room-section-title">Direct</div>
+                <div className="room-section-title">Private</div>
                 <div className="conversation-list">
-                  {directRooms.map((room) => (
+                  {privateRooms.map((room) => (
                     <div
                       key={room.id}
                       className={
@@ -494,7 +494,7 @@ export default function HomePage() {
         <div className="chat-header">
           <div>
             <div className="eyebrow">
-              {selectedRoom?.type === "direct" ? "Direct Chat" : "Chat Room"}
+              {selectedRoom?.type === "private" ? "Private Chat" : "Chat Room"}
             </div>
             <h2>
               {selectedRoom?.name || selectedRoomId || "No room"}

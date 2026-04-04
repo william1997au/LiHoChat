@@ -1,6 +1,6 @@
-const { addRoom } = require("./rooms");
-const { addRoomMember } = require("./roomMembers");
-const { ensureUserExists, getUserById } = require("./users");
+const { addRoom } = require("../repositories/rooms.repository");
+const { addRoomMember } = require("../roomMembers");
+const { ensureUserExists, getUserById } = require("../users");
 
 function createGroupRoom({ creatorUserId, name, memberUserIds = [] }) {
   const normalizedCreatorId = String(creatorUserId || "").trim();
