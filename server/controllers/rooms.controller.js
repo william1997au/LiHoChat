@@ -9,33 +9,35 @@ const {
   getOrCreatePrivateRoom,
 } = require("../services/privateRooms.service");
 
-function listRoomsController(req, res) {
-  res.json({ rooms: getRooms() });
+async function listRoomsController(req, res) {
+  const rooms = await getRooms();
+
+  res.json({ rooms });
 }
 
-function getRoomController(req, res) {
-  const room = getRoomById(req.params.roomId);
+async function getRoomController(req, res) {
+  const room = await getRoomById(req.params.roomId);
 
   if (!room) {
     res.status(404).json({ error: "Room not found" });
     return;
   }
 
-  res.json({ room: getRoomDetail(room) });
+  res.json({ room: await getRoomDetail(room) });
 }
 
-function listRoomMembersController(req, res) {
+async function listRoomMembersController(req, res) {
   try {
     res.json({
       roomId: req.params.roomId,
-      members: getRoomMemberProfiles(req.params.roomId),
+      members: await getRoomMemberProfiles(req.params.roomId),
     });
   } catch (error) {
     res.status(404).json({ error: error.message });
   }
 }
 
-function createRoomController(req, res) {
+async function createRoomController(req, res) {
   try {
     const type = String(req.body?.type || "").trim();
 
@@ -48,7 +50,7 @@ function createRoomController(req, res) {
         return;
       }
 
-      const result = getOrCreatePrivateRoom(userId, friendUserId);
+      const result = await getOrCreatePrivateRoom(userId, friendUserId);
 
       res.status(result.created ? 201 : 200).json(result);
       return;
@@ -61,7 +63,7 @@ function createRoomController(req, res) {
         ? req.body.memberUserIds
         : [];
 
-      const room = createGroupRoom({
+      const room = await createGroupRoom({
         creatorUserId,
         name,
         memberUserIds,
@@ -79,7 +81,7 @@ function createRoomController(req, res) {
   }
 }
 
-function deleteRoomController(req, res) {
+async function deleteRoomController(req, res) {
   try {
     const userId = String(req.query.userId || "").trim();
 
@@ -88,7 +90,7 @@ function deleteRoomController(req, res) {
       return;
     }
 
-    const room = deleteRoomForUser(req.params.roomId, userId);
+    const room = await deleteRoomForUser(req.params.roomId, userId);
 
     res.json({
       room,

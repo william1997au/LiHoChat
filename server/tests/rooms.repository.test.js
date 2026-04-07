@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   addRoom,
+  getPrivateRoomByUserIds,
   getRoomById,
   removeRoom,
 } = require("../repositories/rooms.repository");
@@ -90,6 +91,38 @@ test("room member repository can add and list members", async () => {
       "u1",
       "u2",
     ]);
+  } finally {
+    await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+  }
+});
+
+test("room repository can find an existing private room by member ids", async () => {
+  const roomId = `test-private-room-${Date.now()}`;
+
+  try {
+    await addRoom({
+      id: roomId,
+      type: "private",
+      name: "Test Private Room",
+      description: "Integration test private room",
+      createdAt: new Date().toISOString(),
+    });
+
+    await addRoomMember({
+      roomId,
+      userId: "u1",
+      role: "member",
+    });
+    await addRoomMember({
+      roomId,
+      userId: "u2",
+      role: "member",
+    });
+
+    const privateRoom = await getPrivateRoomByUserIds("u2", "u1");
+
+    assert.equal(privateRoom.id, roomId);
+    assert.equal(privateRoom.type, "private");
   } finally {
     await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
   }

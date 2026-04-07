@@ -13,7 +13,6 @@ const {
 } = require("../repositories/rooms.repository");
 const {
   addRoomMember,
-  fakeRoomMembers,
   getUserRoomMemberships,
   removeRoomMembers,
 } = require("../repositories/roomMembers.repository");
@@ -22,16 +21,12 @@ const {
   getUserById,
 } = require("../repositories/users.repository");
 
-function getOrCreatePrivateRoom(userId, friendUserId) {
+async function getOrCreatePrivateRoom(userId, friendUserId) {
   ensureUserExists(userId);
   ensureUserExists(friendUserId);
   ensureFriendship(userId, friendUserId);
 
-  const existingRoom = getPrivateRoomByUserIds(
-    userId,
-    friendUserId,
-    fakeRoomMembers,
-  );
+  const existingRoom = await getPrivateRoomByUserIds(userId, friendUserId);
 
   if (existingRoom) {
     return {
@@ -43,7 +38,7 @@ function getOrCreatePrivateRoom(userId, friendUserId) {
   const user = getUserById(userId);
   const friend = getUserById(friendUserId);
   const roomId = `dm-${[userId, friendUserId].sort().join("-")}`;
-  const room = addRoom({
+  const room = await addRoom({
     id: roomId,
     type: "private",
     name: createPrivateRoomName(user, friend),
@@ -51,8 +46,10 @@ function getOrCreatePrivateRoom(userId, friendUserId) {
     createdAt: new Date().toISOString(),
   });
 
-  addRoomMember({ roomId, userId });
-  addRoomMember({ roomId, userId: friendUserId });
+  await Promise.all([
+    addRoomMember({ roomId, userId }),
+    addRoomMember({ roomId, userId: friendUserId }),
+  ]);
 
   return {
     room,
@@ -60,11 +57,12 @@ function getOrCreatePrivateRoom(userId, friendUserId) {
   };
 }
 
-function deleteRoomForUser(roomId, userId) {
+async function deleteRoomForUser(roomId, userId) {
   ensureUserExists(userId);
-  const room = ensureRoomExists(roomId);
+  const room = await ensureRoomExists(roomId);
 
-  const visibleRoom = getUserRoomMemberships(userId).some(
+  const userRoomMemberships = await getUserRoomMemberships(userId);
+  const visibleRoom = userRoomMemberships.some(
     (membership) => membership.roomId === roomId,
   );
 
@@ -77,8 +75,8 @@ function deleteRoomForUser(roomId, userId) {
   }
 
   removeMessagesByRoomId(roomId);
-  removeRoomMembers(roomId);
-  removeRoom(roomId);
+  await removeRoomMembers(roomId);
+  await removeRoom(roomId);
 
   return room;
 }

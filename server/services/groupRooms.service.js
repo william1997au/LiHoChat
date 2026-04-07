@@ -5,7 +5,7 @@ const {
   getUserById,
 } = require("../repositories/users.repository");
 
-function createGroupRoom({ creatorUserId, name, memberUserIds = [] }) {
+async function createGroupRoom({ creatorUserId, name, memberUserIds = [] }) {
   const normalizedCreatorId = String(creatorUserId || "").trim();
   const normalizedName = String(name || "").trim();
 
@@ -37,7 +37,7 @@ function createGroupRoom({ creatorUserId, name, memberUserIds = [] }) {
 
   const creator = getUserById(normalizedCreatorId);
   const roomId = `group-${Date.now()}`;
-  const room = addRoom({
+  const room = await addRoom({
     id: roomId,
     type: "group",
     name: normalizedName,
@@ -45,13 +45,15 @@ function createGroupRoom({ creatorUserId, name, memberUserIds = [] }) {
     createdAt: new Date().toISOString(),
   });
 
-  uniqueMemberIds.forEach((memberUserId) => {
-    addRoomMember({
-      roomId,
-      userId: memberUserId,
-      role: memberUserId === normalizedCreatorId ? "owner" : "member",
-    });
-  });
+  await Promise.all(
+    uniqueMemberIds.map((memberUserId) =>
+      addRoomMember({
+        roomId,
+        userId: memberUserId,
+        role: memberUserId === normalizedCreatorId ? "owner" : "member",
+      }),
+    ),
+  );
 
   return room;
 }

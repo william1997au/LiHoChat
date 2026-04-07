@@ -94,26 +94,39 @@ async function ensureRoomExists(roomId) {
   return room;
 }
 
-function getPrivateRoomByUserIds(userId, friendUserId, roomMembers) {
-  return (
-    fakeRooms.find((room) => {
-      if (room.type !== "private") {
-        return false;
-      }
-
-      const memberIds = roomMembers
-        .filter((membership) => membership.roomId === room.id)
-        .map((membership) => membership.userId)
-        .sort();
-      const targetIds = [userId, friendUserId].sort();
-
-      return (
-        memberIds.length === 2 &&
-        memberIds[0] === targetIds[0] &&
-        memberIds[1] === targetIds[1]
-      );
-    }) || null
+async function getPrivateRoomByUserIds(userId, friendUserId) {
+  const result = await pool.query(
+    `
+    SELECT rooms.id, rooms.type, rooms.name, rooms.description, rooms.created_at
+    FROM rooms
+    JOIN room_members ON room_members.room_id = rooms.id
+    WHERE rooms.type = 'private'
+      AND room_members.user_id IN ($1, $2)
+    GROUP BY rooms.id
+    HAVING COUNT(DISTINCT room_members.user_id) = 2
+       AND (
+         SELECT COUNT(*)
+         FROM room_members all_members
+         WHERE all_members.room_id = rooms.id
+       ) = 2
+    LIMIT 1
+    `,
+    [userId, friendUserId],
   );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const room = result.rows[0];
+
+  return {
+    id: room.id,
+    type: room.type,
+    name: room.name,
+    description: room.description,
+    createdAt: room.created_at,
+  };
 }
 
 async function addRoom(room) {

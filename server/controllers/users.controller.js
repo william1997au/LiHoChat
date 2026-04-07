@@ -22,7 +22,7 @@ function getUserController(req, res) {
   res.json({ user });
 }
 
-function listUserRoomsController(req, res) {
+async function listUserRoomsController(req, res) {
   const user = getUserById(req.params.userId);
 
   if (!user) {
@@ -32,7 +32,7 @@ function listUserRoomsController(req, res) {
 
   res.json({
     userId: user.id,
-    rooms: getUserRooms(user.id),
+    rooms: await getUserRooms(user.id),
   });
 }
 

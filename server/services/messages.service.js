@@ -6,12 +6,12 @@ const {
   getMessagesByRoomId,
 } = require("../repositories/messages.repository");
 
-function listMessagesByRoomId(roomId) {
-  ensureRoomExists(roomId);
+async function listMessagesByRoomId(roomId) {
+  await ensureRoomExists(roomId);
   return getMessagesByRoomId(roomId);
 }
 
-function createMessage(payload) {
+async function createMessage(payload) {
   const roomId = String(payload.roomId || "").trim();
   const userId = String(payload.userId || "").trim();
   const username = String(payload.username || "").trim();
@@ -22,9 +22,9 @@ function createMessage(payload) {
     throw new Error("roomId, userId, username, type and content are required");
   }
 
-  ensureRoomExists(roomId);
+  await ensureRoomExists(roomId);
   ensureUserExists(userId);
-  ensureRoomMember(roomId, userId);
+  await ensureRoomMember(roomId, userId);
 
   if (type !== "text") {
     throw new Error('type must be "text"');

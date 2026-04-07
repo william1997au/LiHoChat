@@ -81,8 +81,10 @@ async function getRoomMembers(roomId) {
   }));
 }
 
-function getRoomMemberProfiles(roomId) {
-  return getRoomMembers(roomId).map((membership) => {
+async function getRoomMemberProfiles(roomId) {
+  const memberships = await getRoomMembers(roomId);
+
+  return memberships.map((membership) => {
     const user = getUserById(membership.userId);
 
     return {
@@ -97,10 +99,10 @@ function getRoomMemberProfiles(roomId) {
   });
 }
 
-function getRoomOwner(roomId) {
+async function getRoomOwner(roomId) {
+  const memberships = await getRoomMembers(roomId);
   const ownerMembership =
-    getRoomMembers(roomId).find((membership) => membership.role === "owner") ||
-    null;
+    memberships.find((membership) => membership.role === "owner") || null;
 
   if (!ownerMembership) {
     return null;
@@ -118,34 +120,56 @@ function getRoomOwner(roomId) {
   };
 }
 
-function getRoomDetail(room) {
-  const members = getRoomMemberProfiles(room.id);
+async function getRoomDetail(room) {
+  const [members, owner] = await Promise.all([
+    getRoomMemberProfiles(room.id),
+    getRoomOwner(room.id),
+  ]);
 
   return {
     ...room,
     memberCount: members.length,
-    owner: getRoomOwner(room.id),
+    owner,
   };
 }
 
-function getUserRoomMemberships(userId) {
+async function getUserRoomMemberships(userId) {
   ensureUserExists(userId);
 
-  return fakeRoomMembers.filter((membership) => membership.userId === userId);
+  const result = await pool.query(
+    `
+    SELECT room_id, user_id, role, joined_at
+    FROM room_members
+    WHERE user_id = $1
+    ORDER BY joined_at ASC
+    `,
+    [userId],
+  );
+
+  return result.rows.map((membership) => ({
+    roomId: membership.room_id,
+    userId: membership.user_id,
+    role: membership.role,
+    joinedAt: membership.joined_at,
+  }));
 }
 
-function getUserRooms(userId) {
-  return getUserRoomMemberships(userId).map((membership) => {
-    const room = getRoomById(membership.roomId);
+async function getUserRooms(userId) {
+  const memberships = await getUserRoomMemberships(userId);
 
-    return {
-      ...room,
-      membership: {
-        role: membership.role,
-        joinedAt: membership.joinedAt,
-      },
-    };
-  });
+  return Promise.all(
+    memberships.map(async (membership) => {
+      const room = await getRoomById(membership.roomId);
+
+      return {
+        ...room,
+        membership: {
+          role: membership.role,
+          joinedAt: membership.joinedAt,
+        },
+      };
+    }),
+  );
 }
 
 async function isRoomMember(roomId, userId) {

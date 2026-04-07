@@ -30,13 +30,13 @@ function registerSocket(server) {
     },
   });
 
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     socket.emit("socket:ready", {
       socketId: socket.id,
-      rooms: getRooms(),
+      rooms: await getRooms(),
     });
 
-    socket.on("room:join", (payload) => {
+    socket.on("room:join", async (payload) => {
       try {
         const nextRoomId = String(payload?.roomId || "").trim();
         const nextUserId = String(payload?.userId || "").trim();
@@ -51,7 +51,7 @@ function registerSocket(server) {
           return;
         }
 
-        ensureRoomMember(nextRoomId, nextUserId);
+        await ensureRoomMember(nextRoomId, nextUserId);
 
         const previousRoomId = socket.data.roomId;
 
@@ -93,7 +93,7 @@ function registerSocket(server) {
       emitRoomMemberCount(io, currentRoomId);
     });
 
-    socket.on("message:send", (payload) => {
+    socket.on("message:send", async (payload) => {
       try {
         const activeRoomId = socket.data.roomId;
         const activeUserId = socket.data.userId;
@@ -112,7 +112,7 @@ function registerSocket(server) {
           throw new Error("payload userId must match the active socket user");
         }
 
-        const newMessage = createMessage(payload);
+        const newMessage = await createMessage(payload);
 
         socket.emit("message:ack", {
           messageId: newMessage.id,
