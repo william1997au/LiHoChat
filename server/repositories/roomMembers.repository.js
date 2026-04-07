@@ -1,8 +1,7 @@
+const { pool } = require("../db/postgres");
+
 const { ensureRoomExists, getRoomById } = require("./rooms.repository");
-const {
-  ensureUserExists,
-  getUserById,
-} = require("./users.repository");
+const { ensureUserExists, getUserById } = require("./users.repository");
 
 const fakeRoomMembers = [
   {
@@ -61,10 +60,25 @@ const fakeRoomMembers = [
   },
 ];
 
-function getRoomMembers(roomId) {
-  ensureRoomExists(roomId);
+async function getRoomMembers(roomId) {
+  await ensureRoomExists(roomId);
 
-  return fakeRoomMembers.filter((membership) => membership.roomId === roomId);
+  const result = await pool.query(
+    `
+    SELECT room_id, user_id, role, joined_at
+    FROM room_members
+    WHERE room_id = $1
+    ORDER BY joined_at ASC
+    `,
+    [roomId],
+  );
+
+  return result.rows.map((membership) => ({
+    roomId: membership.room_id,
+    userId: membership.user_id,
+    role: membership.role,
+    joinedAt: membership.joined_at,
+  }));
 }
 
 function getRoomMemberProfiles(roomId) {
@@ -134,48 +148,64 @@ function getUserRooms(userId) {
   });
 }
 
-function isRoomMember(roomId, userId) {
-  return fakeRoomMembers.some(
-    (membership) =>
-      membership.roomId === roomId && membership.userId === userId,
+async function isRoomMember(roomId, userId) {
+  const result = await pool.query(
+    `
+    SELECT 1
+    FROM room_members
+    WHERE room_id = $1 AND user_id = $2
+    LIMIT 1
+    `,
+    [roomId, userId],
   );
+
+  return result.rows.length > 0;
 }
 
-function ensureRoomMember(roomId, userId) {
-  ensureRoomExists(roomId);
+async function ensureRoomMember(roomId, userId) {
+  await ensureRoomExists(roomId);
   ensureUserExists(userId);
 
-  if (!isRoomMember(roomId, userId)) {
+  if (!(await isRoomMember(roomId, userId))) {
     throw new Error(`User "${userId}" is not a member of room "${roomId}"`);
   }
 }
 
-function addRoomMember({ roomId, userId, role = "member" }) {
-  ensureRoomExists(roomId);
+async function addRoomMember({ roomId, userId, role = "member" }) {
+  await ensureRoomExists(roomId);
   ensureUserExists(userId);
 
-  if (isRoomMember(roomId, userId)) {
+  if (await isRoomMember(roomId, userId)) {
     throw new Error(`User "${userId}" is already in room "${roomId}"`);
   }
 
-  const membership = {
-    roomId,
-    userId,
-    role,
-    joinedAt: new Date().toISOString(),
+  const result = await pool.query(
+    `
+    INSERT INTO room_members (room_id, user_id, role)
+    VALUES ($1, $2, $3)
+    RETURNING room_id, user_id, role, joined_at
+    `,
+    [roomId, userId, role],
+  );
+
+  const membership = result.rows[0];
+
+  return {
+    roomId: membership.room_id,
+    userId: membership.user_id,
+    role: membership.role,
+    joinedAt: membership.joined_at,
   };
-
-  fakeRoomMembers.push(membership);
-
-  return membership;
 }
 
-function removeRoomMembers(roomId) {
-  const nextMemberships = fakeRoomMembers.filter(
-    (membership) => membership.roomId !== roomId,
+async function removeRoomMembers(roomId) {
+  await pool.query(
+    `
+    DELETE FROM room_members
+    WHERE room_id = $1
+    `,
+    [roomId],
   );
-  fakeRoomMembers.length = 0;
-  fakeRoomMembers.push(...nextMemberships);
 }
 
 module.exports = {

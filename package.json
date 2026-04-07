@@ -8,7 +8,8 @@
     "dev": "nodemon --legacy-watch --watch server --ext js --exec node server/index.js",
     "dev:server": "nodemon --legacy-watch --watch server --ext js --exec node server/index.js",
     "dev:web": "npm run dev --prefix web",
-    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:web\""
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "test": "node --test server/tests/*.test.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
