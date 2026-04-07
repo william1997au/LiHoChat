@@ -8,7 +8,7 @@ async function listMessagesController(req, res) {
   const { roomId } = req.query;
 
   if (!roomId) {
-    res.json({ messages: getMessages() });
+    res.json({ messages: await getMessages() });
     return;
   }
 

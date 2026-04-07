@@ -64,10 +64,12 @@ function registerSocket(server) {
         socket.data.roomId = nextRoomId;
         socket.data.userId = nextUserId;
 
+        const messages = await getMessagesByRoomId(nextRoomId);
+
         socket.emit("room:joined", {
           roomId: nextRoomId,
           userId: nextUserId,
-          messageCount: getMessagesByRoomId(nextRoomId).length,
+          messageCount: messages.length,
         });
 
         emitRoomMemberCount(io, nextRoomId);

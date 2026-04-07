@@ -74,7 +74,7 @@ async function deleteRoomForUser(roomId, userId) {
     throw new Error("Only private rooms can be deleted for now");
   }
 
-  removeMessagesByRoomId(roomId);
+  await removeMessagesByRoomId(roomId);
   await removeRoomMembers(roomId);
   await removeRoom(roomId);
 

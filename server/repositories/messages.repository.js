@@ -1,99 +1,73 @@
-const fakeMessages = [
-  {
-    id: "1",
-    roomId: "general",
-    userId: "u1",
-    username: "william",
-    type: "text",
-    content: "Hello LiHoChat",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    roomId: "general",
-    userId: "u2",
-    username: "amy",
-    type: "text",
-    content: "Hi William, I can see your message.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    roomId: "general",
-    userId: "u3",
-    username: "kevin",
-    type: "text",
-    content: "This is the default room for everyone.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
-    roomId: "frontend",
-    userId: "u2",
-    username: "amy",
-    type: "text",
-    content: "I am working on the chat page layout.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "5",
-    roomId: "backend",
-    userId: "u1",
-    username: "william",
-    type: "text",
-    content: "I am building the message API first.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "6",
-    roomId: "dm-u1-u2",
-    userId: "u1",
-    username: "william",
-    type: "text",
-    content: "Amy, this private room is ready now.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "7",
-    roomId: "dm-u1-u2",
-    userId: "u2",
-    username: "amy",
-    type: "text",
-    content: "Good. Next step is building the friend flow.",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "8",
-    roomId: "dm-u1-u3",
-    userId: "u3",
-    username: "kevin",
-    type: "text",
-    content: "This one will become the private chat example.",
-    createdAt: new Date().toISOString(),
-  },
-];
+const { pool } = require("../db/postgres");
 
-function getMessages() {
-  return fakeMessages;
+function toMessageEntity(message) {
+  return {
+    id: message.id,
+    roomId: message.room_id,
+    userId: message.user_id,
+    username: message.username,
+    type: message.type,
+    content: message.content,
+    createdAt: message.created_at,
+  };
 }
 
-function getMessagesByRoomId(roomId) {
-  return fakeMessages.filter((message) => message.roomId === roomId);
+async function getMessages() {
+  const result = await pool.query(`
+    SELECT id, room_id, user_id, username, type, content, created_at
+    FROM messages
+    ORDER BY created_at ASC
+  `);
+
+  return result.rows.map(toMessageEntity);
 }
 
-function addMessage(newMessage) {
-  fakeMessages.push(newMessage);
-  return newMessage;
+async function getMessagesByRoomId(roomId) {
+  const result = await pool.query(
+    `
+    SELECT id, room_id, user_id, username, type, content, created_at
+    FROM messages
+    WHERE room_id = $1
+    ORDER BY created_at ASC
+    `,
+    [roomId],
+  );
+
+  return result.rows.map(toMessageEntity);
 }
 
-function removeMessagesByRoomId(roomId) {
-  const nextMessages = fakeMessages.filter((message) => message.roomId !== roomId);
-  fakeMessages.length = 0;
-  fakeMessages.push(...nextMessages);
+async function addMessage(newMessage) {
+  const result = await pool.query(
+    `
+    INSERT INTO messages (id, room_id, user_id, username, type, content, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id, room_id, user_id, username, type, content, created_at
+    `,
+    [
+      newMessage.id,
+      newMessage.roomId,
+      newMessage.userId,
+      newMessage.username,
+      newMessage.type,
+      newMessage.content,
+      newMessage.createdAt,
+    ],
+  );
+
+  return toMessageEntity(result.rows[0]);
+}
+
+async function removeMessagesByRoomId(roomId) {
+  await pool.query(
+    `
+    DELETE FROM messages
+    WHERE room_id = $1
+    `,
+    [roomId],
+  );
 }
 
 module.exports = {
-  fakeMessages,
   getMessages,
   getMessagesByRoomId,
   addMessage,

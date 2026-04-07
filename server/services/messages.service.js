@@ -8,7 +8,7 @@ const {
 
 async function listMessagesByRoomId(roomId) {
   await ensureRoomExists(roomId);
-  return getMessagesByRoomId(roomId);
+  return await getMessagesByRoomId(roomId);
 }
 
 async function createMessage(payload) {
@@ -30,7 +30,7 @@ async function createMessage(payload) {
     throw new Error('type must be "text"');
   }
 
-  return addMessage({
+  return await addMessage({
     id: String(Date.now()),
     roomId,
     userId,

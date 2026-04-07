@@ -12,6 +12,11 @@ const {
   addRoomMember,
   getRoomMembers,
 } = require("../repositories/roomMembers.repository");
+const {
+  addMessage,
+  getMessagesByRoomId,
+  removeMessagesByRoomId,
+} = require("../repositories/messages.repository");
 
 const { pool } = require("../db/postgres");
 
@@ -123,6 +128,53 @@ test("room repository can find an existing private room by member ids", async ()
 
     assert.equal(privateRoom.id, roomId);
     assert.equal(privateRoom.type, "private");
+  } finally {
+    await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+  }
+});
+
+test("message repository can add, list, and remove room messages", async () => {
+  const roomId = `test-message-room-${Date.now()}`;
+  const messageId = `test-message-${Date.now()}`;
+
+  try {
+    await addRoom({
+      id: roomId,
+      type: "group",
+      name: "Test Message Room",
+      description: "Integration test message room",
+      createdAt: new Date().toISOString(),
+    });
+    await addRoomMember({
+      roomId,
+      userId: "u1",
+      role: "owner",
+    });
+
+    const createdMessage = await addMessage({
+      id: messageId,
+      roomId,
+      userId: "u1",
+      username: "william",
+      type: "text",
+      content: "Test message",
+      createdAt: new Date().toISOString(),
+    });
+
+    assert.equal(createdMessage.id, messageId);
+    assert.equal(createdMessage.roomId, roomId);
+    assert.equal(createdMessage.content, "Test message");
+
+    const messages = await getMessagesByRoomId(roomId);
+
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].id, messageId);
+
+    await removeMessagesByRoomId(roomId);
+
+    const messagesAfterRemove = await getMessagesByRoomId(roomId);
+
+    assert.deepEqual(messagesAfterRemove, []);
   } finally {
     await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
   }
