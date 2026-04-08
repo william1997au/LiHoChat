@@ -9,7 +9,10 @@
     "dev:server": "nodemon --legacy-watch --watch server --ext js --exec node server/index.js",
     "dev:web": "npm run dev --prefix web",
     "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
-    "test": "node --test server/tests/*.test.js"
+    "test": "node --test server/tests/*.test.js",
+    "db:seed": "psql -d lihochat -f server/db/seed.sql",
+    "db:reset:dev": "psql -d lihochat -f server/db/reset.sql",
+    "db:reset:seed:dev": "npm run db:reset:dev && npm run db:seed"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

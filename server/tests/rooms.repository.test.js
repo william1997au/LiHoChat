@@ -115,16 +115,16 @@ test("room repository can find an existing private room by member ids", async ()
 
     await addRoomMember({
       roomId,
-      userId: "u1",
+      userId: "u2",
       role: "member",
     });
     await addRoomMember({
       roomId,
-      userId: "u2",
+      userId: "u3",
       role: "member",
     });
 
-    const privateRoom = await getPrivateRoomByUserIds("u2", "u1");
+    const privateRoom = await getPrivateRoomByUserIds("u3", "u2");
 
     assert.equal(privateRoom.id, roomId);
     assert.equal(privateRoom.type, "private");
