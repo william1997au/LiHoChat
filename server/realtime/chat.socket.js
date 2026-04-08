@@ -1,11 +1,15 @@
 const { Server } = require("socket.io");
 
 const { getMessagesByRoomId } = require("../repositories/messages.repository");
-const {
-  ensureRoomMember,
-} = require("../repositories/roomMembers.repository");
+const { ensureRoomMember } = require("../repositories/roomMembers.repository");
 const { getRooms } = require("../repositories/rooms.repository");
 const { createMessage } = require("../services/messages.service");
+
+function logSocketDebug(message, meta = {}) {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(message, meta);
+  }
+}
 
 function emitRoomMemberCount(io, roomId) {
   const count = io.sockets.adapter.rooms.get(roomId)?.size || 0;
@@ -35,6 +39,8 @@ function registerSocket(server) {
       socketId: socket.id,
       rooms: await getRooms(),
     });
+
+    logSocketDebug("socket connected", { socketId: socket.id });
 
     socket.on("room:join", async (payload) => {
       try {
@@ -72,6 +78,12 @@ function registerSocket(server) {
           messageCount: messages.length,
         });
 
+        logSocketDebug("socket joined room", {
+          socketId: socket.id,
+          roomId: nextRoomId,
+          userId: nextUserId,
+        });
+
         emitRoomMemberCount(io, nextRoomId);
       } catch (error) {
         emitSocketError(socket, error.message, "room:join");
@@ -89,6 +101,11 @@ function registerSocket(server) {
       socket.leave(currentRoomId);
       socket.data.roomId = null;
       socket.emit("room:left", {
+        roomId: currentRoomId,
+      });
+
+      logSocketDebug("socket left room", {
+        socketId: socket.id,
         roomId: currentRoomId,
       });
 
@@ -121,6 +138,13 @@ function registerSocket(server) {
           roomId: newMessage.roomId,
         });
 
+        logSocketDebug("socket message persisted", {
+          socketId: socket.id,
+          roomId: newMessage.roomId,
+          userId: newMessage.userId,
+          messageId: newMessage.id,
+        });
+
         io.to(newMessage.roomId).emit("message:new", newMessage);
       } catch (error) {
         emitSocketError(socket, error.message, "message:send");
@@ -129,6 +153,11 @@ function registerSocket(server) {
 
     socket.on("disconnect", () => {
       const currentRoomId = socket.data.roomId;
+
+      logSocketDebug("socket disconnected", {
+        socketId: socket.id,
+        roomId: currentRoomId,
+      });
 
       if (currentRoomId) {
         emitRoomMemberCount(io, currentRoomId);

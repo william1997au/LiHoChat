@@ -57,8 +57,7 @@ export default function HomePage() {
     );
   });
 
-  const selectedRoom =
-    rooms.find((room) => room.id === selectedRoomId) || null;
+  const selectedRoom = rooms.find((room) => room.id === selectedRoomId) || null;
   const privateRooms = filteredRooms.filter((room) => room.type === "private");
   const groupRooms = filteredRooms.filter((room) => room.type === "group");
 
@@ -173,7 +172,16 @@ export default function HomePage() {
           roomId: selectedRoomIdRef.current,
           userId: userIdRef.current,
         });
+        loadMessages(selectedRoomIdRef.current);
       }
+    });
+
+    socket.on("disconnect", (reason) => {
+      setSocketStatus(`Disconnected: ${reason}`);
+    });
+
+    socket.on("connect_error", (error) => {
+      setSocketStatus(`Socket error: ${error.message}`);
     });
 
     socket.on("room:joined", (payload) => {
@@ -191,6 +199,14 @@ export default function HomePage() {
     socket.on("message:new", (message) => {
       setMessages((currentMessages) => {
         if (message.roomId !== selectedRoomIdRef.current) {
+          return currentMessages;
+        }
+
+        if (
+          currentMessages.some(
+            (currentMessage) => currentMessage.id === message.id,
+          )
+        ) {
           return currentMessages;
         }
 
@@ -342,9 +358,7 @@ export default function HomePage() {
           </button>
           <button
             className={
-              activePanel === "chats"
-                ? "app-rail-icon active"
-                : "app-rail-icon"
+              activePanel === "chats" ? "app-rail-icon active" : "app-rail-icon"
             }
             onClick={() => setActivePanel("chats")}
             type="button"
@@ -496,9 +510,7 @@ export default function HomePage() {
             <div className="eyebrow">
               {selectedRoom?.type === "private" ? "Private Chat" : "Chat Room"}
             </div>
-            <h2>
-              {selectedRoom?.name || selectedRoomId || "No room"}
-            </h2>
+            <h2>{selectedRoom?.name || selectedRoomId || "No room"}</h2>
             <p className="chat-summary">
               {selectedRoom?.description || "Select a room or click a friend"}
             </p>

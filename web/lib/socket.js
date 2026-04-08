@@ -6,5 +6,9 @@ const SOCKET_URL =
 export function createSocket() {
   return io(SOCKET_URL, {
     transports: ["websocket"],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 500,
+    timeout: 10000,
   });
 }
